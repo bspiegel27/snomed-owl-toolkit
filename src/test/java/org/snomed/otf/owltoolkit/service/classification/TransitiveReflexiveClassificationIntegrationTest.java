@@ -15,16 +15,14 @@
  */
 package org.snomed.otf.owltoolkit.service.classification;
 
-import org.ihtsdo.otf.snomedboot.ReleaseImportException;
 import org.junit.Test;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.snomed.otf.owltoolkit.service.ReasonerServiceException;
 import org.snomed.otf.owltoolkit.service.SnomedReasonerService;
 import org.snomed.otf.snomedboot.testutil.ZipUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.Assert.*;
 import static org.snomed.otf.owltoolkit.service.SnomedReasonerService.ELK_REASONER_FACTORY;
@@ -35,7 +33,7 @@ public class TransitiveReflexiveClassificationIntegrationTest {
 	private SnomedReasonerService snomedReasonerService = new SnomedReasonerService();
 
 	@Test
-	public void testClassify() throws IOException, OWLOntologyCreationException, ReleaseImportException, ReasonerServiceException {
+	public void testClassify() throws Exception {
 		File baseRF2SnapshotZip = ZipUtil.zipDirectoryRemovingCommentsAndBlankLines("src/test/resources/SnomedCT_MiniRF2_Base_snapshot");
 		File deltaZip = ZipUtil.zipDirectoryRemovingCommentsAndBlankLines("src/test/resources/SnomedCT_MiniRF2_Anatomy_Transitive_Reflexive_delta");
 		assertNotNull(snomedReasonerService);
@@ -99,4 +97,45 @@ public class TransitiveReflexiveClassificationIntegrationTest {
 		assertEquals(13, lines.size());
 	}
 
+
+	@Test
+	public void testClassifyAllOrPartOf() throws IOException, ReasonerServiceException {
+		File baseRF2SnapshotZip = ZipUtil.zipDirectoryRemovingCommentsAndBlankLines("src/test/resources/SnomedCT_MiniRF2_Base_snapshot");
+		File deltaZip = ZipUtil.zipDirectoryRemovingCommentsAndBlankLines("src/test/resources/SnomedCT_MiniRF2_All_or_Part_of_delta");
+		assertNotNull(snomedReasonerService);
+
+		// Run classification
+		File results = TestFileUtil.newTemporaryFile();
+		try {
+			int counter = 0;
+			while (counter++ < 10) {
+				snomedReasonerService.classify(
+						"",
+						baseRF2SnapshotZip,
+						deltaZip,
+						results,
+						ELK_REASONER_FACTORY,
+						false);
+
+				System.out.println("run:" + counter);
+				List<String> lines = readInferredRelationshipLinesTrim(results);
+				assertTrue(lines.contains("1		64405002	129167000	0	116680003	900000000000011006	900000000000451002"));
+				assertTrue(lines.contains("1		410736003	64405002	0	116680003	900000000000011006	900000000000451002"));
+				assertTrue(lines.contains("1		410736003	163099000	0	733928003	900000000000011006	900000000000451002"));
+
+				// Assert results
+				// 163099000 |Entire joint of cervical vertebra other than atlas or axis (body structure)| IS_A
+				// 786989003 |Entire cervical spine joint region (body structure)| therefore the following relationship is redundant
+				assertFalse("Should not be part of the normal form: " +
+								"Joint structure of fifth cervical vertebra (body structure) all-or-part-of " +
+								"Entire cervical spine joint region (body structure) ",
+						lines.contains("1		410736003	786989003	0	733928003	900000000000011006	900000000000451002"));
+				assertEquals(21, lines.size());
+			}
+		} finally {
+			if (results.exists()) {
+				results.delete();
+			}
+		}
+	}
 }

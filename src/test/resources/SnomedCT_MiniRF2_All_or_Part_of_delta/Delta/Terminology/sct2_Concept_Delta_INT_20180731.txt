@@ -1,0 +1,48 @@
+#
+# Comments are removed by unit test
+#
+id	effectiveTime	active	moduleId	definitionStatusId
+
+# Primitive 900000000000074008
+# Sufficient 900000000000073002
+
+# All_or_Part_of (attribute)
+733928003	20170131	1	900000000000012004	900000000000074008
+
+# Part_of (attribute)
+123005000	20170131	1	900000000000012004	900000000000074008
+
+# Many of these concept ids are fictitious
+
+# Joint structure of fifth cervical vertebra (body structure)
+410736003	20170131	1	900000000000207008	900000000000074008
+
+# Structure of joint of cervical vertebra other than atlas or axis (body structure)
+64405002	20170131	1	900000000000207008	900000000000073002
+
+# Body structure (body structure)
+123037004	20170131	1	900000000000207008	900000000000074008
+
+# Entire joint of cervical vertebra other than atlas or axis (body structure)
+163099000	20170131	1	900000000000207008	900000000000074008
+
+# Entire joint of cervical vertebra (body structure)
+362910006	20170131	1	900000000000207008	900000000000074008
+
+# Cervical spine joint structure (body structure)
+129167000	20170131	1	900000000000207008	900000000000074008
+
+# Entire joint of vertebral column (body structure)
+181853000	20170131	1	900000000000207008	900000000000074008
+
+# Entire joint of head and neck (body structure)
+244508006	20170131	1	900000000000207008	900000000000074008
+
+# Structure of joint region of vertebral column (body structure)
+297166009	20170131	1	900000000000207008	900000000000074008
+
+# Structure of musculoskeletal system of cervical spine (body structure)
+786849008	20170131	1	900000000000207008	900000000000074008
+
+# Entire cervical spine joint region (body structure)
+786989003	20170131	1	900000000000207008	900000000000074008

@@ -1,0 +1,10 @@
+#
+# Comments are removed by unit test
+#
+id	effectiveTime	active	moduleId	sourceId	destinationId	relationshipGroup	typeId	characteristicTypeId	modifierId
+
+# All or Part of - is a - Concept model object attribute
+200101001	20170131	1	900000000000012004	733928003	762705008	0	116680003	900000000000011006	900000000000451002
+
+# Structure of joint of cervical vertebra other than atlas or axis (body structure) IS A Cervical spine joint structure (body structure)
+#252898025	20020131	0	900000000000207008	64405002	129167000	0	116680003	900000000000011006	900000000000451002

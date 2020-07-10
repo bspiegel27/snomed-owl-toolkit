@@ -49,4 +49,19 @@ public class Node {
 	public Long getId() {
 		return id;
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof Node)) return false;
+
+		Node node = (Node) o;
+
+		return getId() != null ? getId().equals(node.getId()) : node.getId() == null;
+	}
+
+	@Override
+	public int hashCode() {
+		return getId() != null ? getId().hashCode() : 0;
+	}
 }

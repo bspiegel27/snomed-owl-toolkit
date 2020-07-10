@@ -1,0 +1,49 @@
+#
+# Comments are removed by unit test
+#
+id	effectiveTime	active	moduleId	refsetId	referencedComponentId	owlExpression
+
+# Make 733928003 'All_or_Part_of (attribute)' Transitive
+c69ad177-9756-4ad1-a8b3-02407ca95b36	20170131	1	900000000000012004	733073007	733928003	TransitiveObjectProperty(:733928003)
+
+# Make 733928003 'All_or_Part_of (attribute)' Reflexive
+bf8c83c5-a5db-4bd9-9b04-151f6e937fec	20170131	1	900000000000012004	733073007	733928003	ReflexiveObjectProperty(:733928003)
+
+# 123037004 |Body structure (body structure) IS A 138875005 |SNOMED CT Concept (SNOMED RT+CTV3)
+39c3b7a5-7318-4d20-b678-266c4a424911	20190731	1	900000000000207008	733073007	123037004	SubClassOf(:123037004 :138875005)
+
+# 410736003 |Joint structure of fifth cervical vertebra (body structure) IS A
+# 64405002 |Structure of joint of cervical vertebra other than atlas or axis (body structure)
+1d100d38-577f-4047-9f00-225e8921a23f	20190731	1	900000000000207008	733073007	410736003	SubClassOf(:410736003 :64405002)
+
+# 64405002 IS A 123037004|Body structure (body structure) and All or part of 163099000|Entire joint of cervical vertebra other than atlas or axis (body structure)
+43bbe4c8-acb9-4423-bf7a-b148703f1d64	20190731	1	900000000000207008	733073007	64405002	EquivalentClasses(:64405002 ObjectIntersectionOf(:123037004 ObjectSomeValuesFrom(:733928003 :163099000)))
+
+# This relationship should be inactivated as it is already inferred by reasoner
+86b4da11-1ce3-4180-8399-a383c4d639e6	20190731	0	900000000000207008	733073007	64405002	SubClassOf(:64405002 :129167000)
+
+# Two axioms 129167000 |Cervical spine joint structure (body structure)
+# newly added axiom
+8920b005-d4b9-4e6b-b6ba-1790f7a48f89	20200731	1	900000000000207008	733073007	129167000	EquivalentClasses(:129167000 ObjectIntersectionOf(:123037004 ObjectSomeValuesFrom(:733928003 :362910006)))
+
+# published axioms inactivate this to eliminate the issue
+5265c0c4-f2dc-461a-ace9-1c0515aab2fb	20190731	1	900000000000207008	733073007	129167000	SubClassOf(:129167000 ObjectIntersectionOf(:312821004 :410739005 :786964009))
+
+# 163099000 |Entire joint of cervical vertebra other than atlas or axis (body structure)
+180723f6-fcd5-4ca8-a4a1-ffb8ffb89b8b	20190731	1	900000000000207008	733073007	163099000	SubClassOf(:163099000 ObjectIntersectionOf(:362910006 :64405002))
+
+# 362910006 |Entire joint of cervical vertebra (body structure)
+486107df-06f4-4861-a5db-c32981b35f6d	20190731	1	900000000000207008	733073007	362910006	SubClassOf(:362910006 ObjectIntersectionOf(:129167000 :181853000 :244508006))
+
+# 786989003 |Entire cervical spine joint region (body structure)
+5b9c918c-3d06-4d2c-a0fe-88542ada9378	20190731	1	900000000000207008	733073007	786989003	SubClassOf(:786989003 :786964009)
+
+# Two axioms for 786964009 |Structure of cervical spine joint region (body structure)
+# first axiom
+4324086f-60bc-42ab-acc1-ca64d1c1b999	20190731	1	900000000000207008	733073007	786964009	EquivalentClasses(:786964009 ObjectIntersectionOf(:123037004 ObjectSomeValuesFrom(:733928003 :786989003)))
+
+# second axiom
+# 297166009 |Structure of joint region of vertebral column (body structure) 786849008 |Structure of musculoskeletal system of cervical spine (body structure)
+26f616a4-4058-4f49-a1be-f6a2b9a75bce	20190731	1	900000000000207008	733073007	786964009	SubClassOf(:786964009 ObjectIntersectionOf(:297166009 :786849008))
+
+

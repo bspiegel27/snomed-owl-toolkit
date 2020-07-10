@@ -23,6 +23,7 @@ package org.snomed.otf.owltoolkit.normalform;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.*;
 import com.google.common.collect.Maps.EntryTransformer;
+import com.google.common.graph.*;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,9 @@ import org.snomed.otf.owltoolkit.normalform.transitive.NodeGraph;
 import org.snomed.otf.owltoolkit.ontology.PropertyChain;
 import org.snomed.otf.owltoolkit.taxonomy.SnomedTaxonomy;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -76,6 +80,7 @@ public final class RelationshipNormalFormGenerator {
 	private final Set<Long> traversableProperties;
 	private final Map<Long, NodeGraph> transitiveNodeGraphs = new HashMap<>();
 	private final Map<Long, Set<AxiomRepresentation>> conceptAxiomStatementMap;
+	private final Map<Long, MutableGraph> transitiveGraphs = new HashMap<>();
 
 	/**
 	 * Creates a new distribution normal form generator instance.
@@ -97,6 +102,7 @@ public final class RelationshipNormalFormGenerator {
 		// Initialise node graphs for properties we need to traverse
 		LOGGER.info("Initialising node graphs for traversable properties {}", traversableProperties);
 		traversableProperties.forEach(id -> transitiveNodeGraphs.put(id, new NodeGraph()));
+		traversableProperties.forEach(id -> transitiveGraphs.put(id, GraphBuilder.directed().allowsSelfLoops(true).build()));
 	}
 
 	/**
@@ -109,10 +115,51 @@ public final class RelationshipNormalFormGenerator {
 		LOGGER.info(">>> Relationship normal form generation");
 		final Stopwatch stopwatch = Stopwatch.createStarted();
 		final List<Long> entries = reasonerTaxonomy.getConceptIds();
+//		for (Long conceptId : entries) {
+//			buildTransitiveGraphs(conceptId);
+//		}
 
 		for (Long conceptId : entries) {
 			firstNormalisationPass(conceptId);
 		}
+		// order by transitive graph
+		for (Long key : transitiveGraphs.keySet()) {
+			Traverser<Long> traverser = Traverser.forGraph(transitiveGraphs.get(key));
+			Iterable<Long> iterable = traverser.breadthFirst(transitiveGraphs.get(key).nodes().iterator());
+			Iterator<Long> iterator = iterable.iterator();
+			while (iterator.hasNext()) {
+				Long conceptId = iterator.next();
+				final Set<Relationship> inferredNonIsAFragments = getInferredNonIsAFragmentsInNormalForm(conceptId);
+				// Place results in the cache, so children can re-use it
+				generatedNonIsACache.put(conceptId, ImmutableList.copyOf(inferredNonIsAFragments));
+			}
+
+//			Graph<Long> transposed = Graphs.transpose(transitiveGraphs.get(key));
+//			Set<EndpointPair<Long>> edges = transposed.edges();
+//			System.out.println("total edges=" + edges.size());
+//			List<Long> targets = edges.stream().map(e -> e.target()).collect(Collectors.toList());
+//			List<Long> orderedConcepts = new ArrayList<>();
+//			System.out.println("Before=" + targets.size());
+//			for (Long conceptId : targets) {
+//				if (!orderedConcepts.contains(conceptId)) {
+//					orderedConcepts.add(conceptId);
+//				}
+//			}
+//			System.out.println("After=" + orderedConcepts.size());
+//			try {
+//				if (!orderedConcepts.isEmpty()) {
+//					writeAncestorOrderToFile(key.toString(), orderedConcepts);
+//				}
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//			for (Long conceptId : targets) {
+//				final Set<Relationship> inferredNonIsAFragments = getInferredNonIsAFragmentsInNormalForm(conceptId);
+//				// Place results in the cache, so children can re-use it
+//				generatedNonIsACache.put(conceptId, ImmutableList.copyOf(inferredNonIsAFragments));
+//			}
+		}
+
 
 		for (Long conceptId : entries) {
 			final Collection<Relationship> existingComponents = snomedTaxonomy.getInferredRelationships((long) conceptId);
@@ -123,6 +170,16 @@ public final class RelationshipNormalFormGenerator {
 		LOGGER.info(MessageFormat.format("<<< Relationship normal form generation [{0}]", stopwatch.toString()));
 	}
 
+	private void writeAncestorOrderToFile(String type, List<Long> targets) throws Exception {
+		File result = new File("/Users/mchu/Desktop/INFRA-4766/" + type + ".txt");
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(result))) {
+			for (Long conceptId : targets) {
+				writer.write(conceptId.toString());
+				writer.newLine();
+			}
+		}
+	}
+
 	/**
 	 * Computes and caches a set of components in normal form for the specified concept.
 	 * The first pass uses the is-a hierarchy for normalisation.
@@ -131,14 +188,26 @@ public final class RelationshipNormalFormGenerator {
 	 * @param conceptId the concept for which components should be generated
 	 */
 	private void firstNormalisationPass(long conceptId) {
+
 		final Set<Relationship> inferredNonIsAFragments = getInferredNonIsAFragmentsInNormalForm(conceptId);
 
+		Optional<Relationship> optional = inferredNonIsAFragments.stream().filter(r -> traversableProperties.contains(r.getTypeId())).findFirst();
+		if (!optional.isPresent()) {
+
+		}
 		// Place results in the cache, so children can re-use it
 		generatedNonIsACache.put(conceptId, ImmutableList.copyOf(inferredNonIsAFragments));
 
 		// Add to transitive graphs
-		inferredNonIsAFragments.stream().filter(r -> traversableProperties.contains(r.getTypeId())).forEach(r ->
-				transitiveNodeGraphs.get(r.getTypeId()).addParent(conceptId, r.getDestinationId()));
+//		inferredNonIsAFragments.stream().filter(r -> traversableProperties.contains(r.getTypeId())).forEach(r ->
+//				transitiveNodeGraphs.get(r.getTypeId()).addParent(conceptId, r.getDestinationId()));
+		inferredNonIsAFragments.stream().filter(r -> traversableProperties.contains(r.getTypeId())).forEach(r -> buildTransitiveNodeGraphs(r, conceptId));
+	}
+
+	private void buildTransitiveNodeGraphs(Relationship relationship, long conceptId) {
+		transitiveNodeGraphs.get(relationship.getTypeId()).addParent(conceptId, relationship.getDestinationId());
+		transitiveGraphs.get(relationship.getTypeId()).putEdge(conceptId, relationship.getDestinationId());
+
 	}
 
 	/**
@@ -157,17 +226,45 @@ public final class RelationshipNormalFormGenerator {
 		final Iterable<Relationship> inferredIsAFragments = getInferredIsAFragments(conceptId, directSuperTypes);
 
 		Iterable<Relationship> inferredNonIsAFragments = generatedNonIsACache.get(conceptId);
-		if (!propertyChains.isEmpty()) {
-			for (Relationship inferredNonIsAFragment : inferredNonIsAFragments) {
-				// Is there a property chain for this relationship?
-				if (propertyChains.stream().anyMatch(propertyChain -> propertyChain.getSourceType().equals(inferredNonIsAFragment.getTypeId()))) {
-					inferredNonIsAFragments = getInferredNonIsAFragmentsInNormalForm(conceptId);
-					break;
-				}
-			}
-		}
+//		if (!propertyChains.isEmpty()) {
+//			for (Relationship inferredNonIsAFragment : inferredNonIsAFragments) {
+//				// Is there a property chain for this relationship?
+//				if (propertyChains.stream().anyMatch(propertyChain -> propertyChain.getSourceType().equals(inferredNonIsAFragment.getTypeId()))) {
+//					inferredNonIsAFragments = getInferredNonIsAFragmentsInNormalForm(conceptId);
+//					break;
+//				}
+//			}
+//		}
 
 		return ImmutableList.copyOf(Iterables.concat(inferredIsAFragments, inferredNonIsAFragments));
+	}
+
+	private void buildTransitiveGraphs(Long conceptId) {
+		if (reasonerTaxonomy.getAttributeIds().contains(conceptId)) {
+			// Attributes have no attributes, only parents.
+			return;
+		}
+
+		Set<AxiomRepresentation> axiomRepresentations = conceptAxiomStatementMap.get(conceptId);
+		final Collection<Relationship> ownStatedNonIsaRelationships;
+		if (axiomRepresentations == null) {
+			ownStatedNonIsaRelationships = snomedTaxonomy.getNonIsAStatements(conceptId);
+		} else {
+			ownStatedNonIsaRelationships = new ArrayList<>(snomedTaxonomy.getNonIsAStatements(conceptId));
+			ownStatedNonIsaRelationships.addAll(axiomRepresentations.stream()
+					.filter(axiomRepresentation -> conceptId.equals(axiomRepresentation.getLeftHandSideNamedConcept()))
+					.map(AxiomRepresentation::getRightHandSideRelationships)
+					.map(Map::values)
+					.flatMap(Collection::stream)
+					.flatMap(Collection::stream)
+					.filter(relationship -> relationship.getTypeId() != Concepts.IS_A_LONG)
+					.collect(Collectors.toList()));
+		}
+
+		final Collection<Relationship> ownInferredFragments = snomedTaxonomy.getInferredRelationships(conceptId);
+		final Collection<Relationship> ownInferredNonIsaFragments = Collections2.filter(ownInferredFragments, input -> input.getTypeId() != IS_A_LONG);
+		ownInferredNonIsaFragments.stream().filter(r -> traversableProperties.contains(r.getTypeId())).forEach(r -> buildTransitiveNodeGraphs(r, conceptId));
+		ownStatedNonIsaRelationships.stream().filter(r -> traversableProperties.contains(r.getTypeId())).forEach(r -> buildTransitiveNodeGraphs(r, conceptId));
 	}
 
 	private Set<Relationship> getInferredNonIsAFragmentsInNormalForm(Long conceptId) {
