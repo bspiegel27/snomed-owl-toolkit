@@ -148,9 +148,19 @@ public class Relationship {
 	public static final class ConcreteValue {
 
 		public enum Type {
-			INTEGER,
-			DECIMAL,
-			STRING;
+			INTEGER("int"),
+			DECIMAL("dec"),
+			STRING("str");
+
+			private final String shorthand;
+
+			Type(String shorthand) {
+				this.shorthand = shorthand;
+			}
+
+			public String getShorthand() {
+				return this.shorthand;
+			}
 		}
 
 		private final Type type;
